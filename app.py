@@ -18,17 +18,28 @@ st.markdown(
 
 st.title("Solar Load Calculator")
 
+if "data" not in st.session_state:
+    st.session_state.data = None
+if "output_bytes" not in st.session_state:
+    st.session_state.output_bytes = None
+
 uploaded_file = st.file_uploader("Upload image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file and st.button("Generate Excel"):
     data, output_bytes = process_bill(uploaded_file)
-    st.write("Consumer Number:", data["Consumer Number"])
-    st.write("Name:", data["Name"])
-    st.write("Units:", data["Units"])
-    st.write("Amount:", data["Amount"])
+    st.session_state.data = data
+    st.session_state.output_bytes = output_bytes
+
+if st.session_state.data:
+    st.write("Consumer Number:", st.session_state.data["Consumer Number"])
+    st.write("Name:", st.session_state.data["Name"])
+    st.write("Units:", st.session_state.data["Units"])
+    st.write("Amount:", st.session_state.data["Amount"])
+    st.write("Load:", st.session_state.data["Load"])
+    st.write("Connection Type:", st.session_state.data["Connection Type"])
     st.download_button(
         "Download Excel",
-        output_bytes,
+        st.session_state.output_bytes,
         "output.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
