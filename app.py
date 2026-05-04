@@ -1,6 +1,11 @@
 import streamlit as st
 
-from bill_backend import process_bill
+try:
+    from bill_backend import process_bill
+except Exception as e:
+    st.set_page_config(page_title="Solar Load Calculator")
+    st.error(f"Startup error: {e}")
+    st.stop()
 
 
 st.set_page_config(page_title="Solar Load Calculator")
@@ -26,9 +31,12 @@ if "output_bytes" not in st.session_state:
 uploaded_file = st.file_uploader("Upload image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file and st.button("Generate Excel"):
-    data, output_bytes = process_bill(uploaded_file)
-    st.session_state.data = data
-    st.session_state.output_bytes = output_bytes
+    try:
+        data, output_bytes = process_bill(uploaded_file)
+        st.session_state.data = data
+        st.session_state.output_bytes = output_bytes
+    except Exception as e:
+        st.error(f"Processing error: {e}")
 
 if st.session_state.data:
     st.write("Consumer Number:", st.session_state.data["Consumer Number"])
