@@ -16,7 +16,10 @@ def image_to_text(uploaded_file):
     image = Image.open(uploaded_file)
     image = ImageOps.grayscale(image)
     image = image.resize((image.width * 2, image.height * 2))
-    text = pytesseract.image_to_string(image, lang="eng+mar")
+    try:
+        text = pytesseract.image_to_string(image, lang="eng+mar")
+    except pytesseract.TesseractError:
+        text = pytesseract.image_to_string(image)
     return text
 
 
