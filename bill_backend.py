@@ -147,9 +147,15 @@ def get_fixed_charges(text):
 def get_bill_month(text):
     matches = re.findall(r"(\d{2})-(\d{2})-(\d{4})", text)
     if matches:
-        dates = [datetime(int(year), int(month), int(day)) for day, month, year in matches]
-        latest_date = max(dates)
-        return latest_date.replace(day=1)
+        dates = []
+        for day, month, year in matches:
+            try:
+                dates.append(datetime(int(year), int(month), int(day)))
+            except ValueError:
+                continue
+        if dates:
+            latest_date = max(dates)
+            return latest_date.replace(day=1)
     return datetime.today().replace(day=1)
 
 
