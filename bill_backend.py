@@ -193,8 +193,17 @@ def clear_single_bill_section(sheet):
 def build_history_rows(data):
     rows = get_history_rows(data["Consumer Number"])
     if rows:
+        last_known_units = rows[-1]["units"]
         if data["Units"]:
-            rows[-1]["units"] = float(data["Units"])
+            try:
+                current_units = float(data["Units"])
+                if current_units >= 5:
+                    rows[-1]["units"] = current_units
+                elif last_known_units is not None:
+                    rows[-1]["units"] = last_known_units
+            except ValueError:
+                if last_known_units is not None:
+                    rows[-1]["units"] = last_known_units
         return rows
     rows = []
     start_month = datetime(data["Bill Month"].year, data["Bill Month"].month, 1)
@@ -223,6 +232,40 @@ def fill_history_rows(sheet, rows):
         sheet[f"E{row_number}"] = row_data.get("amount")
 
 
+def fill_summary_values(sheet):
+    units_values = []
+    amount_values = []
+    unit_cost_values = []
+    for row in range(9, 21):
+        units = sheet[f"D{row}"].value
+        amount = sheet[f"E{row}"].value
+        if isinstance(units, (int, float)):
+            units_values.append(float(units))
+        if isinstance(amount, (int, float)):
+            amount_values.append(float(amount))
+        if isinstance(units, (int, float)) and units not in (0, None) and isinstance(amount, (int, float)):
+            fixed_charges = float(sheet["D3"].value or 0)
+            unit_cost_values.append((float(amount) - fixed_charges) / float(units))
+
+    average_units = round(sum(units_values) / len(units_values), 2) if units_values else 0
+    average_amount = round(sum(amount_values) / len(amount_values), 2) if amount_values else 0
+    average_unit_cost = round(sum(unit_cost_values) / len(unit_cost_values), 3) if unit_cost_values else 0
+    kw = round((average_units * 12 * 1.1) / 1400, 9) if average_units else 0
+    solar_panels = round((kw / float(sheet["C7"].value or 600)) * 1000, 9) if kw else 0
+    solar_capacity = round(solar_panels, 0) * float(sheet["C7"].value or 600) / 1000 if solar_panels else 0
+    number_of_panels = round((solar_capacity / float(sheet["C7"].value or 600)) * 1000) if solar_capacity else 0
+
+    sheet["D22"] = average_units
+    sheet["E22"] = average_amount
+    sheet["F22"] = average_unit_cost
+    sheet["D23"] = kw
+    sheet["D24"] = solar_panels
+    sheet["D25"] = solar_capacity
+    sheet["D26"] = number_of_panels
+    sheet["D29"] = solar_capacity
+    sheet["D30"] = number_of_panels
+
+
 def clean_layout(sheet):
     sheet.column_dimensions["A"].hidden = True
     for column in ["G", "H", "I", "J"]:
@@ -246,6 +289,7 @@ def fill_left_section(sheet, data):
     sheet["D4"] = data["Load"]
     sheet["D5"] = data["Connection Type"]
     fill_history_rows(sheet, build_history_rows(data))
+    fill_summary_values(sheet)
 
 
 def fill_excel(data):
